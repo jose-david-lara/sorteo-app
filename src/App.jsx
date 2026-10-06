@@ -1,6 +1,5 @@
 import React from 'react';
 import SorteoApp from './components/SorteoApp';
-import './App.css';
 
 function App() {
   return (
