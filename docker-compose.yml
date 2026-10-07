@@ -4,7 +4,8 @@ services:
     image: camp/sorteo-arbitros:2.0.0
     container_name: sorteo-arbitros
     ports:
-      - "8080:8080"
+      # Puerto del servidor configurable: PUERTO=80 docker compose up -d
+      - "${PUERTO:-8080}:8080"
     restart: unless-stopped
     read_only: true
     tmpfs:
@@ -16,3 +17,8 @@ services:
     mem_limit: 128m
     cpus: 0.5
     pids_limit: 100
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

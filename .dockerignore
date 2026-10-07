@@ -7,3 +7,6 @@ dist
 .env.*
 Dockerfile
 docker-compose.yml
+.idea
+.vscode
+coverage

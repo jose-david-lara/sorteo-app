@@ -43,38 +43,14 @@ corresponde.
 
 ## Despliegue (infraestructura)
 
-Requisitos: Docker. El build no necesita acceso a `cdn.sheetjs.com`: el paquete
-de SheetJS está en `vendor/` (SheetJS ya no publica versiones seguras en npm).
-Sí necesita acceso al registro de npm y a Docker Hub.
-
 ```bash
-docker compose up -d --build      # o docker-compose
+docker compose up -d --build
 # http://<servidor>:8080   healthcheck: http://<servidor>:8080/healthz
 ```
 
-Sin compose:
-
-```bash
-docker build -t camp/sorteo-arbitros:2.0.0 .
-docker run -d --name sorteo-arbitros -p 8080:8080 \
-  --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges:true \
-  --restart unless-stopped camp/sorteo-arbitros:2.0.0
-```
-
-Características de la imagen:
-
-- Build multi-etapa: los tests corren durante el build; si fallan, no hay imagen.
-- Runtime `nginx-unprivileged` (usuario no root), puerto 8080, sistema de archivos
-  de solo lectura, sin capabilities.
-- Cabeceras de seguridad: CSP estricta (sin scripts externos ni inline),
-  `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`.
-- Solo acepta `GET`/`HEAD`; no expone la versión de nginx.
-
-Recomendaciones para infra:
-
-- Publicarla solo en la intranet y, si es posible, detrás del proxy con HTTPS.
-- Si se quiere limitar quién la usa, agregar autenticación en el proxy inverso
-  (la app no maneja usuarios).
+La guía completa para infraestructura (requisitos, servidor sin internet, proxy,
+HTTPS, verificación, actualización, rollback y solución de problemas) está en
+[DEPLOY.md](DEPLOY.md).
 
 ## Desarrollo
 
