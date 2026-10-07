@@ -5,24 +5,26 @@ import { SESION_VACIA, cargarSesion, guardarSesion, borrarSesion } from '../lib/
 import logo from '../camp300.png';
 import './SorteoApp.css';
 
-// Carrete: debe coincidir con la transición de .reel-strip.girando y el alto de .reel-item en el CSS.
-const DURACION_ANIMACION = 4500;
-const ALTO_FILA = 64;
-const NOMBRES_ANTES_DEL_RESULTADO = 44;
+// Tómbola: los tiempos deben coincidir con las animaciones .mezclando y balota-cae del CSS.
+const DURACION_MEZCLA = 2600;
+const DURACION_ANIMACION = 4000;
+const COLORES_BOLAS = ['#001091', '#4051aa', '#8595c9', '#ffffff', '#000a5c', '#c7d0ec'];
+
+// Bolas decorativas dentro de la tómbola: cada una orbita con radio, ángulo y velocidad propios.
+const BOLAS = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  color: COLORES_BOLAS[i % COLORES_BOLAS.length],
+  angulo: `${(i * 137) % 360}deg`,
+  radio: `${30 + (i * 23) % 60}px`,
+  velocidad: `${0.6 + (i % 5) * 0.15}s`,
+  sentido: i % 2 === 0 ? 'normal' : 'reverse'
+}));
 const COLORES_CONFETI = ['#001091', '#4051aa', '#8595c9', '#ff932d', '#77797c'];
 
 function mensajeInicial({ participantes, sorteos }) {
   if (sorteos.length > 0) return sorteos[sorteos.length - 1].nombre;
   if (participantes.length > 0) return `${participantes.length} participantes cargados`;
   return 'Carga tu Excel';
-}
-
-// Tira de nombres que recorre el carrete: empieza en lo que se muestra ahora y
-// termina en el sorteado. El relleno es aleatorio y solo visual.
-function armarTira(textoActual, nombres, ganador) {
-  const azar = () => nombres[Math.floor(Math.random() * nombres.length)];
-  const relleno = Array.from({ length: NOMBRES_ANTES_DEL_RESULTADO - 2 }, azar);
-  return ['', textoActual, ...relleno, ganador, azar()];
 }
 
 const SorteoApp = () => {
@@ -33,9 +35,15 @@ const SorteoApp = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showConfetti, setShowConfetti] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  // null = carrete en reposo; si no, { items, objetivo, fase: 'inicio' | 'girando' | 'listo' }
-  const [carrete, setCarrete] = useState(null);
-  const temporizador = useRef(null);
+  // null = tómbola en reposo; si no, { numero, fase: 'mezclando' | 'cayendo' | 'listo' }
+  const [tombola, setTombola] = useState(null);
+  const temporizadores = useRef([]);
+
+  const programar = (fn, ms) => temporizadores.current.push(setTimeout(fn, ms));
+  const cancelarTemporizadores = () => {
+    temporizadores.current.forEach(clearTimeout);
+    temporizadores.current = [];
+  };
 
   const { archivo, participantes, advertencias, confirmacion, sorteos } = sesion;
   const listaConfirmada = confirmacion !== null;
@@ -51,7 +59,7 @@ const SorteoApp = () => {
     guardarSesion(sesion);
   }, [sesion]);
 
-  useEffect(() => () => clearTimeout(temporizador.current), []);
+  useEffect(() => () => temporizadores.current.forEach(clearTimeout), []);
 
   // Ocultar confeti después de la animación
   useEffect(() => {
@@ -113,7 +121,7 @@ const SorteoApp = () => {
           advertencias: resultado.advertencias
         };
         setSesion(nuevaSesion);
-        setCarrete(null);
+        setTombola(null);
         setError('');
         setSearchTerm('');
         setCurrentDisplay(mensajeInicial(nuevaSesion));
@@ -138,7 +146,7 @@ const SorteoApp = () => {
   const confirmar = () => {
     if (activos === 0) return;
     setSesion(prev => ({ ...prev, confirmacion: confirmarLista(prev.participantes) }));
-    setCarrete(null);
+    setTombola(null);
     setCurrentDisplay('Lista confirmada');
   };
 
@@ -151,30 +159,24 @@ const SorteoApp = () => {
     }
 
     const resultado = realizarSorteo(confirmacion.semilla, participantes, sorteos);
-    const items = armarTira(currentDisplay, elegibles.map(p => p.nombre), resultado.nombre);
     setIsSpinning(true);
-    setCarrete({ items, objetivo: items.length - 2, fase: 'inicio' });
+    setTombola({ numero: resultado.numero, fase: 'mezclando' });
 
-    // Dos frames para que el navegador pinte la posición inicial antes de la transición.
-    requestAnimationFrame(() => requestAnimationFrame(() =>
-      setCarrete(c => c && { ...c, fase: 'girando' })
-    ));
-
-    temporizador.current = setTimeout(() => {
+    programar(() => setTombola(t => t && { ...t, fase: 'cayendo' }), DURACION_MEZCLA);
+    programar(() => {
       setSesion(prev => ({ ...prev, sorteos: [...prev.sorteos, resultado] }));
       setCurrentDisplay(resultado.nombre);
-      setCarrete(c => c && { ...c, fase: 'listo' });
+      setTombola(t => t && { ...t, fase: 'listo' });
       setIsSpinning(false);
       setShowConfetti(true);
-    }, DURACION_ANIMACION + 100);
+    }, DURACION_ANIMACION);
   };
 
   const acta = () => construirActa(sesion);
 
   const ultimo = sorteos[sorteos.length - 1];
   const mostrarSello = !isSpinning && ultimo && currentDisplay === ultimo.nombre;
-  const itemsCarrete = carrete ? carrete.items : ['', currentDisplay, ''];
-  const filaCentral = carrete && carrete.fase !== 'inicio' ? carrete.objetivo : 1;
+  const fase = tombola?.fase;
 
   // Reiniciar todo
   const resetAll = () => {
@@ -182,12 +184,12 @@ const SorteoApp = () => {
       ? '¿Seguro que deseas reiniciar? Se perderán los sorteos realizados si no exportaste el acta.'
       : '¿Estás seguro de que deseas reiniciar todo?';
     if (window.confirm(aviso)) {
-      clearTimeout(temporizador.current);
+      cancelarTemporizadores();
       borrarSesion();
       setSesion(SESION_VACIA);
       setCurrentDisplay(mensajeInicial(SESION_VACIA));
       setIsSpinning(false);
-      setCarrete(null);
+      setTombola(null);
       setShowConfetti(false);
       setSearchTerm('');
       setError('');
@@ -292,21 +294,37 @@ const SorteoApp = () => {
                   {confetti}
                 </div>
 
-                {/* Carrete tipo tragamonedas */}
-                <div className={`reel ${isSpinning ? 'reel-girando' : ''} ${carrete?.fase === 'listo' ? 'reel-listo' : ''}`}>
-                  <div className="reel-band" />
-                  <div
-                    className={`reel-strip ${carrete?.fase === 'girando' ? 'girando' : ''}`}
-                    style={{ transform: `translateY(${-(filaCentral - 1) * ALTO_FILA}px)` }}
-                  >
-                    {itemsCarrete.map((nombre, i) => (
-                      <div
-                        key={i}
-                        className={`reel-item ${i === filaCentral && !isSpinning ? 'reel-item-actual' : ''}`}
-                      >
-                        {nombre}
-                      </div>
+                {/* Tómbola con balota */}
+                <div className={`tombola ${fase === 'mezclando' ? 'mezclando' : ''}`}>
+                  <div className="tombola-esfera">
+                    <div className="tombola-aros" />
+                    {BOLAS.map(b => (
+                      <span
+                        key={b.id}
+                        className="tombola-bola"
+                        style={{
+                          '--angulo': b.angulo,
+                          '--radio': b.radio,
+                          '--velocidad': b.velocidad,
+                          animationDirection: b.sentido,
+                          backgroundColor: b.color
+                        }}
+                      />
                     ))}
+                  </div>
+                  <div className="tombola-conducto" />
+
+                  {fase === 'cayendo' && (
+                    <span className="balota">{tombola.numero}</span>
+                  )}
+
+                  <div className="tombola-bandeja">
+                    {fase === 'mezclando' && <span className="bandeja-espera">Mezclando…</span>}
+                    {(!fase || fase === 'listo') && (
+                      <div key={currentDisplay} className={`balota-abierta ${fase === 'listo' ? 'abriendo' : ''}`}>
+                        {currentDisplay}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <p className="sr-only" aria-live="polite">{isSpinning ? 'Sorteando…' : currentDisplay}</p>

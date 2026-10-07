@@ -287,92 +287,166 @@ body {
   align-items: center;
 }
 
-/* Carrete tipo tragamonedas: 3 filas visibles de 64px, la central es la del resultado */
-.reel {
+/* Tómbola con balota: esfera (220px) → conducto → bandeja donde se abre la balota */
+.tombola {
   position: relative;
   width: 100%;
-  max-width: 380px;
-  min-width: 260px;
-  height: 192px;
-  overflow: hidden;
-  border-radius: 14px;
-  background: linear-gradient(180deg, var(--navy-900), var(--navy-700) 50%, var(--navy-900));
-  box-shadow: 0 18px 40px -14px rgba(0, 16, 145, 0.5),
-              inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  max-width: 340px;
+  height: 352px;
 }
 
-/* Sombra sobre las filas superior e inferior para dar profundidad de tambor */
-.reel::after {
+.tombola-esfera {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 220px;
+  height: 220px;
+  margin-left: -110px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 55%, rgba(230, 234, 246, 0.95), rgba(133, 149, 201, 0.55) 70%, rgba(64, 81, 170, 0.7));
+  border: 6px solid var(--navy-700);
+  box-sizing: border-box;
+  box-shadow: 0 18px 40px -14px rgba(0, 16, 145, 0.55),
+              inset 0 -14px 24px rgba(0, 10, 92, 0.25);
+  overflow: hidden;
+  z-index: 2;
+}
+
+/* Brillo de vidrio */
+.tombola-esfera::after {
   content: '';
   position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(180deg, var(--navy-900) 0%, rgba(0, 10, 92, 0) 32%,
-                              rgba(0, 10, 92, 0) 68%, var(--navy-900) 100%);
+  top: 14px;
+  left: 30px;
+  width: 70px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  transform: rotate(-30deg);
+  filter: blur(2px);
+  z-index: 3;
 }
 
-.reel-band {
+/* Aros de la jaula: giran al mezclar */
+.tombola-aros {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  top: 64px;
-  height: 64px;
-  border-radius: 10px;
-  background-color: #fff;
-  border: 2px solid transparent;
-  box-sizing: border-box;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
-  z-index: 0;
-  transition: background-color 0.3s, border-color 0.3s;
+  inset: 8px;
+  border-radius: 50%;
+  border: 2px dashed rgba(0, 16, 145, 0.25);
+  z-index: 2;
 }
 
-/* Mientras gira la franja es translúcida para que los nombres se lean en blanco */
-.reel-girando .reel-band {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: var(--accent);
+.tombola-aros::before {
+  content: '';
+  position: absolute;
+  inset: 0 34%;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 16, 145, 0.18);
 }
 
-.reel-girando .reel-item {
-  color: #fff;
+.mezclando .tombola-aros {
+  animation: girar 0.9s linear infinite;
 }
 
-.reel-strip {
-  position: relative;
+/* Cada bola orbita alrededor del centro de la esfera */
+.tombola-bola {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  margin: -13px 0 0 -13px;
+  border-radius: 50%;
+  background-image: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0) 45%);
+  box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: rotate(var(--angulo)) translateX(var(--radio));
+  animation: orbitar 14s linear infinite;
   z-index: 1;
-  will-change: transform;
 }
 
-/* Arranca rápido y frena suave hasta detenerse en el resultado */
-.reel-strip.girando {
-  transition: transform 4.5s cubic-bezier(0.12, 0.72, 0.12, 1);
+.mezclando .tombola-bola {
+  animation-duration: var(--velocidad);
 }
 
-.reel-item {
-  height: 64px;
-  line-height: 64px;
-  padding: 0 24px;
+.tombola-conducto {
+  position: absolute;
+  top: 204px;
+  left: 50%;
+  width: 52px;
+  height: 66px;
+  margin-left: -26px;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(90deg, var(--gray-300), #fff 45%, var(--gray-300));
+  border: 3px solid var(--navy-700);
+  border-top: none;
+  box-sizing: border-box;
+  z-index: 1;
+}
+
+/* Balota sorteada: sale de la esfera, cae por el conducto y rebota en la bandeja */
+.balota {
+  position: absolute;
+  top: 180px;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffd2a6, var(--accent) 55%, #c96a10);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 44px;
   text-align: center;
-  font-size: 1.15rem;
-  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  z-index: 3;
+  animation: balota-cae 1.4s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+.tombola-bandeja {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 82px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--navy-700), var(--navy-900));
+  box-shadow: 0 14px 30px -12px rgba(0, 16, 145, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  box-sizing: border-box;
+}
+
+.bandeja-espera {
   color: var(--blue-300);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  animation: parpadeo 1s ease-in-out infinite alternate;
+}
+
+.balota-abierta {
+  max-width: 100%;
+  padding: 0 24px;
+  height: 52px;
+  line-height: 52px;
+  border-radius: 9999px;
+  background-color: #fff;
+  color: var(--navy-700);
+  font-size: 1.15rem;
+  font-weight: 700;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   box-sizing: border-box;
 }
 
-.reel-item-actual {
-  color: var(--navy-700);
-  font-weight: 700;
-}
-
-.reel-listo .reel-band {
-  animation: band-flash 0.9s ease-out;
-}
-
-.reel-listo .reel-item-actual {
-  animation: winner-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+/* La balota naranja se "abre" y se convierte en la cápsula con el nombre */
+.balota-abierta.abriendo {
+  animation: balota-abre 0.7s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
 .stamp-slot {
@@ -408,15 +482,35 @@ body {
   border: 0;
 }
 
-@keyframes winner-pop {
-  0% { transform: scale(1); }
-  45% { transform: scale(1.12); }
-  100% { transform: scale(1); }
+@keyframes girar {
+  to { transform: rotate(360deg); }
 }
 
-@keyframes band-flash {
-  0% { box-shadow: 0 0 0 0 rgba(255, 147, 45, 0.9); }
-  100% { box-shadow: 0 0 0 14px rgba(255, 147, 45, 0); }
+@keyframes orbitar {
+  from { transform: rotate(var(--angulo)) translateX(var(--radio)); }
+  to { transform: rotate(calc(var(--angulo) + 360deg)) translateX(var(--radio)); }
+}
+
+/* 180px → 289px (centro de la bandeja), con dos rebotes al final */
+@keyframes balota-cae {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  12% { opacity: 1; }
+  58% { transform: translateY(109px) scale(1); animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1); }
+  72% { transform: translateY(88px); animation-timing-function: cubic-bezier(0.6, 0, 0.8, 0.4); }
+  84% { transform: translateY(109px); animation-timing-function: ease-out; }
+  92% { transform: translateY(102px); animation-timing-function: ease-in; }
+  100% { transform: translateY(109px); }
+}
+
+@keyframes balota-abre {
+  0% { clip-path: circle(22px at 50% 50%); background-color: var(--accent); color: transparent; }
+  45% { clip-path: circle(22px at 50% 50%); background-color: var(--accent); color: transparent; transform: scale(1.15); }
+  100% { clip-path: circle(100% at 50% 50%); background-color: #fff; color: var(--navy-700); transform: scale(1); }
+}
+
+@keyframes parpadeo {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
 }
 
 @keyframes stamp-in {
@@ -425,8 +519,9 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reel-listo .reel-band,
-  .reel-listo .reel-item-actual,
+  .tombola-bola,
+  .mezclando .tombola-aros,
+  .balota-abierta.abriendo,
   .stamp {
     animation: none;
   }
@@ -756,8 +851,8 @@ input:disabled + .toggle-slider {
     justify-content: center;
   }
 
-  .reel {
-    min-width: 0;
+  .tombola {
+    max-width: 100%;
   }
 
   .start-button {
